@@ -2,6 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum PlayerWeaponType
+{
+    None = 0, ShortRange, LongRange
+}
 public class CharController : MonoBehaviour
 {
     Rigidbody rigid;
@@ -13,8 +17,10 @@ public class CharController : MonoBehaviour
     [SerializeField]
     float fMoveSpeed = 600.0f;
     bool bIsLookLeft;
+    bool bIsGrounded;
 
-    //OnDash
+
+    #region OnDashVariable
     bool bIsDash = false;//chech dashing
     bool bCanDash = true;
     [SerializeField]
@@ -23,18 +29,39 @@ public class CharController : MonoBehaviour
     float fDashPower = 10.0f;
     [SerializeField]
     float fDashCooldown = 1.0f;
+    #endregion
 
+    #region JumpVariable
+    bool bCanJump = true;
+    bool bIsJump = false;
+    [SerializeField]
+    float fJumpPower = 10.0f;
+    #endregion
+
+    #region WeaponVariable
+    PlayerWeaponType nNowWeaponType = PlayerWeaponType.None;
+    #endregion
 
     void Start()
     {
         rigid = GetComponent<Rigidbody>();
+        Init();
+    }
+    private void Init()
+    {
         moveDirection = Vector3.zero;
         bIsLookLeft = false;
         bIsDash = false;
         bCanDash = true;
-        fDashTime = 1.0f;
+        bCanJump = true;
+        bIsJump = false;
+        bIsGrounded = false;
         transform.rotation = Quaternion.Euler(0, fDefaultAnlge, 0);//OnStart, Setting Player Look Right
+        nNowWeaponType = PlayerWeaponType.None;
+       
     }
+
+    #region Function_HorizonMoveAndDash
     public void HorizontalDash(float _fvalue)
     {
         if (bIsDash == true || bCanDash == false)
@@ -77,7 +104,7 @@ public class CharController : MonoBehaviour
               if (bIsLookLeft == false)
                   qTargetAngle = Quaternion.Euler(new Vector3(0, fDefaultAnlge, 0)); 
           }
-          moveDirection = new Vector3(_fvalue, 0, 0);
+          moveDirection = new Vector3(_fvalue, rigid.velocity.y, 0);
     }
     public void OnDash()
     {
@@ -87,42 +114,53 @@ public class CharController : MonoBehaviour
         StartCoroutine("StartDash");
 
     }
-    private IEnumerator StartDash()
+    #endregion
+
+    #region Function_Jump
+    public void OnJump()
     {
-        bIsDash = true;
-        float _xDir = 0;
-        if (bIsLookLeft == true)
-            _xDir = -1;
-        else
-            _xDir = 1;
+        if (bCanJump == false)
+            return;
 
-        qTargetAngle = Quaternion.Euler(new Vector3(0, 90 * _xDir, 0));
-        moveDirection = new Vector3(_xDir, 0, 0);
-        fDashTime = 1.0f;
-
-        while (fDashTime > 0)
+        if (bIsJump == false)
         {
-            fDashTime -= Time.deltaTime;
-            rigid.velocity = moveDirection * fMoveSpeed * Time.deltaTime;
+            bIsJump = true;
+            bCanJump = false;
+            rigid.velocity = new Vector3(rigid.velocity.x, fJumpPower, 0);
         }
 
-
-        if (bIsLookLeft == true)
-            qTargetAngle = Quaternion.Euler(new Vector3(0, -fDefaultAnlge, 0));
-        if (bIsLookLeft == false)
-            qTargetAngle = Quaternion.Euler(new Vector3(0, fDefaultAnlge, 0));
-        bIsDash = false;
-
-        yield return 0;
     }
+    private void CheckGround()
+    {
+        if (rigid.velocity.y<0)
+        {
+            RaycastHit rayHit;
+            if (Physics.Raycast(rigid.position, Vector3.down, out rayHit, 1.2f, LayerMask.GetMask("Platform")))
+            {
+                    Debug.DrawRay(rigid.position, Vector3.down* 1.2f, Color.red);
+                if (bCanJump == false)
+                {
+                    bCanJump = true;
+                    bIsJump = false;
+                }
+            }
+            else
+            {
+                Debug.DrawRay(rigid.position, Vector3.down * 1.2f, Color.green);
+                if (bCanJump == true) bCanJump = false;
+            }
+        }
+    }
+    #endregion
+
     private void FixedUpdate()
     {
+        CheckGround();
         //Controller.Move(moveDirection);
         if (bIsDash == false)
         {
             transform.rotation = Quaternion.Lerp(transform.rotation, qTargetAngle, Time.deltaTime * 20);
-            rigid.velocity = moveDirection * fMoveSpeed * Time.deltaTime;
+            rigid.velocity = new Vector3(moveDirection.x * fMoveSpeed * Time.deltaTime,rigid.velocity.y,0);
         }
-
     }
 }

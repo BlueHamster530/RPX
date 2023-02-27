@@ -12,9 +12,15 @@ public class PlayerKeyInput : MonoBehaviour
     [SerializeField]
     GameObject[] goWeapons;
 
+    #region DashVariable
     const float fDashCheckTime = 0.3f;
     float fDashCurrentTime = 0.0f;
     float fDashxDirBefore = 0.0f;
+    #endregion
+
+    #region ITemVariable
+    List<GameObject> goCanGetItems = new List<GameObject>();
+    #endregion
 
     void Start()
     {
@@ -28,14 +34,14 @@ public class PlayerKeyInput : MonoBehaviour
         fDashCurrentTime = 0.0f;
         fDashxDirBefore = 0.0f;
     }
-    private void KeyInputEvent()
+    private void OnMoveInput()
     {
         float fx = Input.GetAxisRaw("Horizontal");
         float fz = Input.GetAxisRaw("Vertical");
         if (fDashCurrentTime > 0)
             fDashCurrentTime -= Time.deltaTime;
 
-        
+
         if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow))
         {
             if (fDashCurrentTime <= 0)
@@ -59,6 +65,38 @@ public class PlayerKeyInput : MonoBehaviour
         charController.HorizontalMove(fx);
 
 
+        if (Input.GetKeyDown(KeyCode.S))
+        {
+            print("jump");
+            charController.OnJump();
+        }
+    }
+    private void OnAttackEventInput()
+    {
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+
+        }
+    }
+    private void OnInstractionInput()
+    {
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            foreach (GameObject go in goCanGetItems)
+            {
+                ItemObject clone = go.GetComponent<ItemObject>();
+                clone.PrintName();
+            }
+        }
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            if (goCanGetItems.Count > 0)
+            {
+                goCanGetItems[0].GetComponent<ItemObject>().PrintName();
+                Destroy(goCanGetItems[0]);
+                goCanGetItems.RemoveAt(0);
+            }
+        }
     }
     //public void OnMove(InputAction.CallbackContext context)
     //{
@@ -94,6 +132,17 @@ public class PlayerKeyInput : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        KeyInputEvent();
+        OnMoveInput();
+        OnInstractionInput();
+        OnAttackEventInput();
+    }
+
+    public void AddItemList(GameObject _go)
+    {
+        goCanGetItems.Add(_go);
+    }
+    public void RemoveItemList(GameObject _go)
+    {
+        goCanGetItems.Remove(_go);
     }
 }
